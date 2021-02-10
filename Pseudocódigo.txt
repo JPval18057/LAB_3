@@ -1,0 +1,84 @@
+Pseudocódigo Lab 3 LCD 16x2
+sección: 20
+Autor: Juan Pablo Valenzuela
+carnet: 18057
+//Variables
+int recibo = 0;
+int voltaje1 = 0;
+int voltaje2 = 0;
+int canal = 0;
+long contador = 0; 
+string linea1;
+string linea2;
+
+#include "libreria_lcd.h"
+
+interrupt subroutine:
+	if RCIF = 1:
+		RCIF = 0 ;
+		recibo = RCREG; //Guardamos el dato en recibo
+	if ADIF = 1:
+		ADIF = 0;
+		if canal = 1:
+		voltaje1 = ADRESH; //pasamos el valor del voltaje a la variable
+		else:
+		voltaje2 = ADRESH; //lo guardamos en otro espacio
+				
+
+setup:
+	//configuracion i/o
+	TRISCbits.RC7 = 0;
+	TRISCbits.RC6 = 1; //Configuramos RC7 COMO ENTRADA PARA RECIBIR DATOS Y RC6 COMO SALIDA PARA TRANSMITIR
+	PORTC = 0; //apagamos el puerto
+	ANSEL = 3;
+	TRISA = 3; //configurarmos los puertos RA1 y RA2 como entradas analogicas
+	Activar reloj interno de 8MHz
+	//Configurar interrupciones
+	PEIE = 1; //Activar interrupciones perifericas
+	ADIE = 1; //Activar interrupciones del ADC
+	ADIF = 0; //Reiniciar la bandera ADC
+	
+	ie(); //Activar interrupciones
+
+	//Configurar EUSART
+	//Baud rate generator
+	BRGH = 1; //(TXSTA) se configura según la pagina 161
+	BRG16 = 1;
+	SPBRG = 191; //Contador
+	// Baud rate de 10417
+	//Comunicacion
+	TXEN = 1; //encender la transmisión
+	SYNC = 0; //comunicación asíncrona
+	SPEN = 1; 
+	TXIF = 0; //apagamos la bandera de transmisión
+	TXIE = 0; //por el momento apagamos la transmisión porque no la vamos a usar
+	CREN = 1; //Encendemos la recepción
+	SYNC = 0; //Recepción asíncrona
+	SPEN = 1; 
+	RCIF = 0; //Apagamos la bandera de recepción
+	RCIE = 1; //Encendemos la interrupcion de recepcion de datos
+	RX9 = 0; //Encripcion de 8 bits
+	
+	//Configurar ADC
+	ADCON0 = 0b01000001; //canal AN0 por defecto
+	ADFM = 0; //justificar a la derecha ADRESH
+main loop
+	CHS<3:0> = 0; //seleccionar canal AN0
+	GO/DONE = 1; //Mandamos a convertir el voltaje		
+	delay_us(50);
+	CHS<3:0> = 1; //Seleccionar canal AN1
+	canal = 1;
+	GO/DONE = 1;//Iniciamos la conversión
+	delay_us(50);
+	if recibo = "+"
+		contador++;
+	else if recibo = "-"
+		contador--;
+	actualizar_pantalla(); //Actualizamos la pantalla
+
+void actualizar_pantalla(void){
+	linea 1 = "S1 S2 S3";
+	linea 2 = "%voltaje1 %voltaje2 %contador"; //En esta línea dejo indicado que la línea 2 va a mandar la información de las variables a la pantalla
+	mandar_datos(linea1, linea2); //Esto es la función de la librería que manda los datos, como es un pseudocódigo no escribí todo el código literal como va en MPLABX
+	return ; //no retorna nada
+}
